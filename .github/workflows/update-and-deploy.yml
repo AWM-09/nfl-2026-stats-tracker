@@ -1,4 +1,3 @@
-```yaml
 name: Update NFL stats and deploy dashboard
 
 on:
@@ -51,4 +50,3 @@ jobs:
 
       - name: Deploy dashboard
         uses: actions/deploy-pages@v4
-```
