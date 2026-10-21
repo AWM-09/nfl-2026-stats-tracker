@@ -41,7 +41,7 @@ jobs:
           for year in 2020 2021 2022 2023 2024 2025; do
             echo "Downloading player statistics for ${year}"
             curl --fail --location --retry 3 \
-              "https://github.com/nflverse/nflverse-data/releases/download/player_stats/stats_player_week_${year}.csv" \
+              "https://github.com/nflverse/nflverse-data/releases/download/stats_player/stats_player_week_${year}.csv" \
               --output "data/stats_player_week_${year}.csv"
             test -s "data/stats_player_week_${year}.csv"
             head -n 1 "data/stats_player_week_${year}.csv" | grep -qi 'week'
