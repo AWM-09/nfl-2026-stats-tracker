@@ -1,3 +1,4 @@
+
 name: Update NFL stats and deploy dashboard
 
 on:
@@ -35,6 +36,7 @@ jobs:
             local filename="$2"
             local output="data/stats_player_week_${year}.csv"
             local url
+
             for release in stats_player player_stats; do
               url="https://github.com/nflverse/nflverse-data/releases/download/${release}/${filename}"
               if curl --silent --show-error --fail --location --retry 2 "$url" --output "${output}.tmp"; then
@@ -49,46 +51,51 @@ jobs:
             return 1
           }
 
-          # The established weekly CSV release is used for 2020–2024 and 2026.
           for year in 2020 2021 2022 2023 2024 2026; do
             echo "Downloading weekly player statistics for ${year}"
             download_asset "$year" "stats_player_week_${year}.csv" || {
-              echo "::error::Could not find the weekly player-stat CSV for ${year}. Check the nflverse release assets."
+              echo "::error::Could not find the weekly player-stat CSV for ${year}."
               exit 1
             }
           done
 
-          # nflverse changed its player-stat release naming for 2025. Try the weekly
-          # filename first; if unavailable, combine that season's regular and playoff
-          # CSVs into the single file the dashboard expects.
           echo "Downloading player statistics for 2025"
           if ! download_asset 2025 stats_player_week_2025.csv; then
             reg="$(mktemp)"
             post="$(mktemp)"
             got_reg=false
             got_post=false
+
             for release in stats_player player_stats; do
               for filename in stats_player_reg_2025.csv player_stats_reg_2025.csv; do
                 url="https://github.com/nflverse/nflverse-data/releases/download/${release}/${filename}"
-                if curl --silent --show-error --fail --location --retry 2 "$url" --output "$reg" && test -s "$reg"; then got_reg=true; break 2; fi
+                if curl --silent --show-error --fail --location --retry 2 "$url" --output "$reg" && test -s "$reg"; then
+                  got_reg=true
+                  break 2
+                fi
               done
             done
+
             for release in stats_player player_stats; do
               for filename in stats_player_post_2025.csv player_stats_post_2025.csv; do
                 url="https://github.com/nflverse/nflverse-data/releases/download/${release}/${filename}"
-                if curl --silent --show-error --fail --location --retry 2 "$url" --output "$post" && test -s "$post"; then got_post=true; break 2; fi
+                if curl --silent --show-error --fail --location --retry 2 "$url" --output "$post" && test -s "$post"; then
+                  got_post=true
+                  break 2
+                fi
               done
             done
+
             if [[ "$got_reg" == true ]]; then
               cp "$reg" data/stats_player_week_2025.csv
               if [[ "$got_post" == true ]]; then
-                # Append playoff rows without duplicating the CSV header.
                 tail -n +2 "$post" >> data/stats_player_week_2025.csv
               fi
             else
-              echo "::error::Could not locate the 2025 player-stat CSV assets (weekly or regular-season)."
+              echo "::error::Could not locate the 2025 player-stat CSV assets."
               exit 1
             fi
+
             rm -f "$reg" "$post"
           fi
 
@@ -97,12 +104,36 @@ jobs:
             head -n 1 "data/stats_player_week_${year}.csv" | grep -qi 'week'
           done
 
+      - name: Download NFL schedule and scores
+        shell: bash
+        run: |
+          set -euo pipefail
+          url="https://github.com/nflverse/nflverse-data/releases/download/schedules/games.csv"
+
+          curl --silent --show-error --fail --location --retry 3 \
+            "$url" --output data/schedule.csv.tmp
+
+          test -s data/schedule.csv.tmp
+
+          header="$(head -n 1 data/schedule.csv.tmp)"
+          for column in season week gameday gametime home_team away_team; do
+            if ! printf '%s\n' "$header" | grep -qE "(^|,)${column}(,|$)"; then
+              echo "::error::Schedule CSV is missing required column: ${column}"
+              exit 1
+            fi
+          done
+
+          mv data/schedule.csv.tmp data/schedule.csv
+          echo "NFL schedule downloaded successfully."
+          echo "Schedule rows: $(($(wc -l < data/schedule.csv) - 1))"
+
       - name: Prepare dashboard files
         run: |
           set -euo pipefail
           mkdir -p site/data
           cp index.html site/index.html
           cp data/stats_player_week_*.csv site/data/
+          cp data/schedule.csv site/data/schedule.csv
 
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v5
