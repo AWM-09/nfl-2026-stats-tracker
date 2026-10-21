@@ -18,6 +18,18 @@ button{cursor:pointer;font-weight:750}button:hover{filter:brightness(1.13)}butto
 .panel{padding:16px;margin-top:12px;min-width:0}.panel-head{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}.panel h2{font-size:19px;margin:0}.tag{font-size:10px;color:var(--accent);border:1px solid #326b5c;border-radius:999px;padding:5px 8px;font-weight:850;letter-spacing:.08em}
 .tablewrap{overflow:auto;border:1px solid var(--line);border-radius:10px}table{border-collapse:collapse;width:100%;min-width:620px}th,td{text-align:left;padding:10px 12px;border-bottom:1px solid #263949;white-space:nowrap}th{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;background:#0d1924;position:sticky;top:0}td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}tbody tr:hover{background:#1a2c3a}tbody tr:last-child td{border-bottom:0}.rank{color:var(--accent);font-weight:900}.muted{color:var(--muted)}.lower{display:grid;grid-template-columns:1.2fr 1fr;gap:12px}.chart{display:flex;align-items:flex-end;gap:10px;height:235px;padding:16px 6px 0;border-bottom:1px solid var(--line);overflow-x:auto}.barcol{flex:1;min-width:32px;height:100%;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:5px}.bar{width:min(40px,80%);min-height:2px;background:linear-gradient(180deg,var(--accent),#287c70);border-radius:6px 6px 2px 2px}.barvalue,.barlabel{font-size:11px;text-align:center}.barlabel{color:var(--muted);padding-bottom:7px}.barvalue{font-weight:800}
 .comparison-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px}.comparison-card{background:#0d1924;border:1px solid var(--line);border-radius:11px;padding:12px;display:grid;gap:9px}.comparison-card h3{margin:0}.notice{padding:11px 12px;border:1px dashed var(--line);border-radius:10px;color:var(--muted);margin:10px 0}.hidden{display:none!important}.foot{margin-top:18px;color:var(--muted);font-size:12px}.foot a{color:var(--accent)}.small{font-size:12px}
+
+.calendar-controls{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:14px}
+.game-list{display:grid;gap:9px}
+.game-row{display:grid;grid-template-columns:minmax(110px,1fr) minmax(180px,2fr) minmax(100px,1fr);gap:12px;align-items:center;padding:13px;border:1px solid var(--line);border-radius:11px;background:#0d1924}
+.game-time,.game-meta{color:var(--muted);font-size:12px}
+.game-matchup{display:grid;gap:5px;font-weight:800}
+.game-team{display:flex;justify-content:space-between;gap:12px}
+.game-score{font-variant-numeric:tabular-nums;font-weight:900}
+.game-status{justify-self:end;border:1px solid var(--line);border-radius:999px;padding:5px 8px;color:var(--muted);font-size:11px;font-weight:800}
+.game-status.final{color:var(--accent);border-color:#326b5c}
+@media(max-width:900px){.calendar-controls{grid-template-columns:repeat(2,minmax(0,1fr))}.game-row{grid-template-columns:1fr 2fr}.game-status{justify-self:start}}
+@media(max-width:540px){.calendar-controls{grid-template-columns:1fr 1fr}.game-row{grid-template-columns:1fr;gap:8px}.game-status{justify-self:start}}
 @media(max-width:900px){.controls{grid-template-columns:repeat(2,minmax(0,1fr))}.lower{grid-template-columns:1fr}}
 @media(max-width:540px){main{padding:16px 10px}.kpis{grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}.card{padding:12px}.value{font-size:23px}.controls{grid-template-columns:1fr 1fr}.controls .field:first-child{grid-column:1/-1}.actions button{flex:1}}
 </style>
@@ -52,8 +64,22 @@ button{cursor:pointer;font-weight:750}button:hover{filter:brightness(1.13)}butto
 </section>
 <section class="week-picker"><div class="week-title">Weeks included in totals and trends</div><div class="weeks" id="weekChoices"></div><div class="week-actions" style="margin-top:10px"><button id="allWeeksBtn">Select all available weeks</button><button id="clearWeeksBtn">Clear selection</button></div><div class="small muted" id="selectedWeeksNote" style="margin-top:8px">No weeks selected</div></section>
 <nav class="tabs" id="viewTabs">
-<button class="tab active" data-view="weekly">Weekly leaderboard</button><button class="tab" data-view="cumulative">Selected weeks total</button><button class="tab" data-view="compare">Week-by-week breakdown</button><button class="tab" data-view="team">Team totals</button><button class="tab" data-view="playercompare">Player comparison</button>
+<button class="tab active" data-view="weekly">Weekly leaderboard</button><button class="tab" data-view="cumulative">Selected weeks total</button><button class="tab" data-view="compare">Week-by-week breakdown</button><button class="tab" data-view="team">Team totals</button><button class="tab" data-view="playercompare">Player comparison</button><button class="tab" data-view="calendar">NFL Calendar</button>
 </nav>
+<section class="panel hidden" id="calendarPanel">
+<div class="panel-head"><h2>NFL Schedule & Scores</h2><span class="tag">SCHEDULE</span></div>
+<div class="notice">Game times are converted from the schedule's Eastern Time to your selected timezone. Scores and statuses update when the schedule data is refreshed.</div>
+<div class="calendar-controls">
+<div class="field"><label for="calendarYear">Season</label><select id="calendarYear"><option value="2026">2026</option><option value="2025">2025</option><option value="2024">2024</option><option value="2023">2023</option><option value="2022">2022</option><option value="2021">2021</option><option value="2020">2020</option></select></div>
+<div class="field"><label for="calendarWeek">Week</label><select id="calendarWeek"><option value="">All weeks</option></select></div>
+<div class="field"><label for="calendarTeam">Team</label><select id="calendarTeam"><option value="">All teams</option></select></div>
+<div class="field"><label for="calendarTimezone">Display timezone</label><select id="calendarTimezone">
+<option value="Europe/London">London (UK)</option><option value="America/New_York">New York / Eastern</option><option value="America/Chicago">Chicago / Central</option><option value="America/Denver">Denver / Mountain</option><option value="America/Los_Angeles">Los Angeles / Pacific</option><option value="Europe/Warsaw">Warsaw (Poland)</option><option value="UTC">UTC</option><option value="Asia/Tokyo">Tokyo</option><option value="Australia/Sydney">Sydney</option>
+</select></div>
+</div>
+<div class="panel-head"><h2 id="calendarTitle">2026 schedule</h2><span class="small muted" id="calendarCount">Loading schedule…</span></div>
+<div class="game-list" id="gameList"><div class="notice">Loading schedule data…</div></div>
+</section>
 <section class="panel" id="mainPanel"><div class="panel-head"><h2 id="tableTitle">Weekly leaderboard</h2><span class="tag" id="viewTag">WEEKLY</span></div><div class="tablewrap"><table><thead id="thead"></thead><tbody id="tbody"><tr><td>Loading data…</td></tr></tbody></table></div><div class="notice hidden" id="emptyNote">No matching rows. Try another filter or week.</div></section>
 <section class="panel hidden" id="comparePanel"><div class="panel-head"><h2>Compare any number of players</h2><span class="tag">CUSTOM COMPARISON</span></div><div class="notice">Every player has their own name, statistic, season, phase and week. Names can be typed directly; suggestions appear when matching data is loaded.</div><div class="comparison-cards" id="comparisonCards"></div><div class="actions" style="margin:12px 0"><button class="primary" id="addComparisonBtn">+ Add player</button><button id="removeComparisonBtn">Remove last player</button></div><div class="tablewrap"><table><thead id="comparisonHead"></thead><tbody id="comparisonBody"></tbody></table></div><div class="notice" id="comparisonMessage">Choose players and their settings to compare them.</div></section>
 <section class="lower">
@@ -67,7 +93,7 @@ button{cursor:pointer;font-weight:750}button:hover{filter:brightness(1.13)}butto
 'use strict';
 const $=id=>document.getElementById(id);
 const YEARS=[2020,2021,2022,2023,2024,2025,2026];
-let raw=[],view='weekly',week=1,selectedWeeks=[],comparisonCount=2;
+let raw=[],scheduleRows=[],view='weekly',week=1,selectedWeeks=[],comparisonCount=2;
 const aliases={player:['player_display_name','player_name','name'],team:['recent_team','team'],position:['position_group','position'],season:['season'],week:['week'],season_type:['season_type'],opponent:['opponent_team','opponent']};
 const metrics={
 passing_yards:{label:'Passing yards',cols:['passing_yards'],sum:true},passing_tds:{label:'Passing touchdowns',cols:['passing_tds'],sum:true},passing_interceptions:{label:'Interceptions thrown',cols:['passing_interceptions','interceptions'],sum:true},completion_pct:{label:'Completion percentage',rate:true},passer_rating:{label:'Passer rating',rating:true},sacks_suffered:{label:'Sacks taken',cols:['sacks_suffered','sacks_taken'],sum:true},passing_epa:{label:'Passing EPA',cols:['passing_epa'],sum:true},
@@ -106,7 +132,66 @@ function renderPlayerCompare(){if(!raw.length)return;const es=[];for(let i=1;i<=
 $('comparisonHead').innerHTML='<tr><th>Detail</th>'+es.map(e=>`<th>${esc(e.player||`Player ${e.i}`)}</th>`).join('')+'</tr>';$('comparisonBody').innerHTML=[['Statistic',e=>metrics[e.stat].label],['Season',e=>e.year],['Phase',e=>e.phase==='REG'?'Regular season':e.phase==='POST'?'Playoffs':'Regular + playoffs'],['Week',e=>`Week ${e.week}, ${e.year}`],['Team',e=>e.team],['Value',e=>fmt(e.value,e.stat)]].map(([label,fn])=>`<tr><td><b>${label}</b></td>${es.map(e=>`<td>${esc(fn(e))}</td>`).join('')}</tr>`).join('');const miss=es.filter(e=>e.player&&e.value===null);$('comparisonMessage').textContent=miss.length?`No matching data found for ${miss.map(e=>`${e.player} (Week ${e.week}, ${e.year})`).join('; ')}. Check spelling, season file and week.`:`Comparing ${es.filter(e=>e.player).length} player(s). Each column uses its own settings.`}
 function fillSuggestions(){const players=[...new Set(raw.map(r=>r.player).filter(Boolean))].sort((a,b)=>a.localeCompare(b));$('playerSuggestions').innerHTML=players.map(n=>`<option value="${esc(n)}"></option>`).join('')}
 async function loadData(){setStatus('Loading season CSV files…');$('refreshBtn').disabled=true;const loaded=[],fail=[];for(const y of YEARS){try{const res=await fetch(`./data/stats_player_week_${y}.csv?v=${Date.now()}`,{cache:'no-store'});if(!res.ok)throw Error(`HTTP ${res.status}`);const txt=await res.text();if(txt.trimStart().startsWith('<'))throw Error('Response was HTML, not CSV');const parsed=parseCSV(txt);if(!parsed.length)throw Error('CSV was empty');loaded.push(...parsed.map(normalize).filter(r=>r.season===y&&r.week>=1&&r.week<=22&&r.player))}catch(e){fail.push(`${y}: ${e.message}`)}}raw=loaded;updateSelectors(true);fillSuggestions();renderComparisonCards();$('kSeasons').textContent=[...new Set(raw.map(r=>r.season))].length;$('kRows').textContent=`${raw.length.toLocaleString()} player-week rows`;$('notes').textContent=fail.length?`Some season files were unavailable: ${fail.join(' · ')}. Only seasons with published CSVs can be queried.`:'All configured season files loaded successfully.';setStatus(raw.length?`Loaded ${raw.length.toLocaleString()} player-week rows. ${fail.length?`Unavailable files: ${fail.join(', ')}`:'All configured seasons loaded.'}`:'No data loaded. Check that data/stats_player_week_YEAR.csv files are published.',raw.length?(fail.length?'':'good'):'bad');$('refreshBtn').disabled=false;render()}
-function init(){ $('year').innerHTML=YEARS.slice().reverse().map(y=>`<option value="${y}">${y}</option>`).join('');$('year').value='2026';$('viewTabs').querySelectorAll('button').forEach(b=>b.onclick=()=>{view=b.dataset.view;$('viewTabs').querySelectorAll('button').forEach(x=>x.classList.toggle('active',x===b));render()});['metric','team','position'].forEach(id=>$(id).addEventListener('change',render));$('playerSearch').addEventListener('input',render);$('year').addEventListener('change',()=>{selectedWeeks=[];updateSelectors(true);render()});$('phase').addEventListener('change',()=>{selectedWeeks=[];updateSelectors(true);render()});$('weekSelect').addEventListener('change',()=>{week=+$('weekSelect').value;selectedWeeks=[week];renderWeeks();render()});$('addComparisonBtn').onclick=()=>{if(comparisonCount<12){comparisonCount++;renderComparisonCards()}else $('comparisonMessage').textContent='Maximum of 12 players per comparison.'};$('removeComparisonBtn').onclick=()=>{if(comparisonCount>2){comparisonCount--;renderComparisonCards()}};$('refreshBtn').onclick=loadData;$('upload').onchange=async e=>{const f=e.target.files[0];if(!f)return;try{raw=parseCSV(await f.text()).map(normalize).filter(r=>r.player);updateSelectors(true);fillSuggestions();renderComparisonCards();setStatus(`Loaded ${raw.length.toLocaleString()} rows from ${f.name}.`,'good');render()}catch(err){setStatus('Could not read CSV: '+err.message,'bad')}};$('exportBtn').onclick=()=>{const k=$('metric').value,data=sortData(currentData()),cols=['player','team','position','season','season_type','week',k],csv=[cols.join(','),...data.map(r=>cols.map(c=>'"'+String(r[c]??'').replace(/"/g,'""')+'"').join(','))].join('\n'),a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));a.download=`nfl-${$('year').value}-${view}-${k}.csv`;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)};loadData()}
+
+function scheduleDateTime(g){
+ const day=String(g.gameday||g.game_date||'').slice(0,10);
+ const tm=String(g.gametime||g.game_time||'').trim();
+ if(!day)return null;
+ // nflverse gametime values are Eastern Time; use an explicit zone so DST is handled.
+ if(!tm||tm==='TBD')return new Date(day+'T17:00:00Z');
+ const m=tm.match(/^(\d{1,2}):(\d{2})/);
+ if(!m)return new Date(day+'T17:00:00Z');
+ const hh=String(+m[1]).padStart(2,'0'),mm=m[2];
+ // Build the Eastern wall-clock time and iteratively resolve its UTC instant.
+ const target=Date.UTC(+day.slice(0,4),+day.slice(5,7)-1,+day.slice(8,10),+hh,+mm);
+ let guess=target;
+ for(let i=0;i<3;i++){
+   const parts=new Intl.DateTimeFormat('en-GB',{timeZone:'America/New_York',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).formatToParts(new Date(guess));
+   const v=Object.fromEntries(parts.map(p=>[p.type,p.value]));
+   const represented=Date.UTC(+v.year,+v.month-1,+v.day,+v.hour,+v.minute);
+   guess+=target-represented;
+ }
+ return new Date(guess);
+}
+function scheduleField(r,keys){return first(r,keys)}
+function renderCalendar(){
+ const yr=+$('calendarYear').value||2026, wk=$('calendarWeek').value, team=$('calendarTeam').value, tz=$('calendarTimezone').value;
+ let games=scheduleRows.filter(g=>num(scheduleField(g,['season','year']))===yr);
+ if(wk)games=games.filter(g=>String(scheduleField(g,['week']))===wk);
+ if(team)games=games.filter(g=>String(scheduleField(g,['home_team','homeTeam']))===team||String(scheduleField(g,['away_team','awayTeam']))===team);
+ games.sort((a,b)=>(scheduleDateTime(a)?.getTime()||0)-(scheduleDateTime(b)?.getTime()||0));
+ $('calendarTitle').textContent=`${yr} NFL schedule`+(wk?` · Week ${wk}`:'');
+ $('calendarCount').textContent=`${games.length} game${games.length===1?'':'s'}`;
+ if(!scheduleRows.length){$('gameList').innerHTML='<div class="notice">Schedule data has not been deployed yet. The calendar interface is ready; the next step is to add a schedule CSV download to your GitHub Actions workflow.</div>';return}
+ if(!games.length){$('gameList').innerHTML='<div class="notice">No games found for these filters.</div>';return}
+ $('gameList').innerHTML=games.map(g=>{
+  const home=String(scheduleField(g,['home_team','homeTeam'])||'Home'),away=String(scheduleField(g,['away_team','awayTeam'])||'Away');
+  const hs=scheduleField(g,['home_score','home_points']),as=scheduleField(g,['away_score','away_points']);
+  const hasScore=hs!==''&&hs!==undefined&&as!==''&&as!==undefined&&Number.isFinite(Number(hs))&&Number.isFinite(Number(as));
+  const d=scheduleDateTime(g);
+  const time=d?new Intl.DateTimeFormat('en-GB',{timeZone:tz,weekday:'short',day:'numeric',month:'short',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).format(d):String(g.gameday||'Time TBC');
+  const phase=String(scheduleField(g,['game_type','season_type'])||'REG').toUpperCase();
+  const status=hasScore?'FINAL':'SCHEDULED';
+  return `<article class="game-row"><div><div class="game-time">${esc(time)}</div><div class="game-meta">Week ${esc(scheduleField(g,['week'])||'—')} · ${esc(phase)}</div></div><div class="game-matchup"><div class="game-team"><span>${esc(away)}</span><span class="game-score">${hasScore?esc(as):'—'}</span></div><div class="game-team"><span>${esc(home)}</span><span class="game-score">${hasScore?esc(hs):'—'}</span></div></div><div class="game-status ${hasScore?'final':''}">${status}</div></article>`;
+ }).join('');
+}
+async function loadSchedule(){
+ try{
+  const res=await fetch(`./data/schedule.csv?v=${Date.now()}`,{cache:'no-store'});
+  if(!res.ok)throw Error(`HTTP ${res.status}`);
+  const parsed=parseCSV(await res.text());
+  scheduleRows=parsed;
+  const weeks=[...new Set(scheduleRows.filter(g=>num(g.season)===+$('calendarYear').value).map(g=>String(g.week)).filter(Boolean))].sort((a,b)=>+a-+b);
+  $('calendarWeek').innerHTML='<option value="">All weeks</option>'+weeks.map(w=>`<option value="${esc(w)}">Week ${esc(w)}</option>`).join('');
+  const teams=[...new Set(scheduleRows.flatMap(g=>[g.home_team,g.away_team]).filter(Boolean))].sort();
+  $('calendarTeam').innerHTML='<option value="">All teams</option>'+teams.map(t=>`<option value="${esc(t)}">${esc(t)}</option>`).join('');
+ }catch(e){scheduleRows=[]}
+ renderCalendar();
+}
+function init(){ $('year').innerHTML=YEARS.slice().reverse().map(y=>`<option value="${y}">${y}</option>`).join('');$('year').value='2026';$('calendarTimezone').value=localStorage.getItem('nflCalendarTimezone')||'Europe/London';
+$('viewTabs').querySelectorAll('button').forEach(b=>b.onclick=()=>{view=b.dataset.view;$('viewTabs').querySelectorAll('button').forEach(x=>x.classList.toggle('active',x===b));$('calendarPanel').classList.toggle('hidden',view!=='calendar');if(view==='calendar'){ $('mainPanel').classList.add('hidden');$('comparePanel').classList.add('hidden');document.querySelector('.lower').classList.add('hidden');renderCalendar();}else{document.querySelector('.lower').classList.remove('hidden');render();}});
+['calendarYear','calendarWeek','calendarTeam'].forEach(id=>$(id).addEventListener('change',()=>{if(id==='calendarYear'){$('calendarWeek').value='';}renderCalendar()}));
+$('calendarTimezone').addEventListener('change',()=>{localStorage.setItem('nflCalendarTimezone',$('calendarTimezone').value);renderCalendar()});['metric','team','position'].forEach(id=>$(id).addEventListener('change',render));$('playerSearch').addEventListener('input',render);$('year').addEventListener('change',()=>{selectedWeeks=[];updateSelectors(true);render()});$('phase').addEventListener('change',()=>{selectedWeeks=[];updateSelectors(true);render()});$('weekSelect').addEventListener('change',()=>{week=+$('weekSelect').value;selectedWeeks=[week];renderWeeks();render()});$('addComparisonBtn').onclick=()=>{if(comparisonCount<12){comparisonCount++;renderComparisonCards()}else $('comparisonMessage').textContent='Maximum of 12 players per comparison.'};$('removeComparisonBtn').onclick=()=>{if(comparisonCount>2){comparisonCount--;renderComparisonCards()}};$('refreshBtn').onclick=()=>{loadData();loadSchedule()};$('upload').onchange=async e=>{const f=e.target.files[0];if(!f)return;try{raw=parseCSV(await f.text()).map(normalize).filter(r=>r.player);updateSelectors(true);fillSuggestions();renderComparisonCards();setStatus(`Loaded ${raw.length.toLocaleString()} rows from ${f.name}.`,'good');render()}catch(err){setStatus('Could not read CSV: '+err.message,'bad')}};$('exportBtn').onclick=()=>{const k=$('metric').value,data=sortData(currentData()),cols=['player','team','position','season','season_type','week',k],csv=[cols.join(','),...data.map(r=>cols.map(c=>'"'+String(r[c]??'').replace(/"/g,'""')+'"').join(','))].join('\n'),a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));a.download=`nfl-${$('year').value}-${view}-${k}.csv`;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)};loadData();loadSchedule()}
 init();
 </script>
 </body>
