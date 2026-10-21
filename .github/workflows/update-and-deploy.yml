@@ -24,25 +24,75 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v4
 
-      - name: Download latest 2026 NFL statistics
+      - name: Download weekly player stats for 2020–2026 (regular season and playoffs)
+        shell: bash
         run: |
           set -euo pipefail
           mkdir -p data
-          curl --fail --location --retry 3 \
-            'https://github.com/nflverse/nflverse-data/releases/download/stats_player/stats_player_week_2026.csv' \
-            --output data/stats_player_week_2026.csv
-          test -s data/stats_player_week_2026.csv
-          head -n 1 data/stats_player_week_2026.csv | grep -qi 'week'
 
-      - name: Download historical NFL statistics (2020–2025)
-        run: |
-          set -euo pipefail
-          mkdir -p data
-          for year in 2020 2021 2022 2023 2024 2025; do
-            echo "Downloading player statistics for ${year}"
-            curl --fail --location --retry 3 \
-              "https://github.com/nflverse/nflverse-data/releases/download/stats_player/stats_player_week_${year}.csv" \
-              --output "data/stats_player_week_${year}.csv"
+          download_asset() {
+            local year="$1"
+            local filename="$2"
+            local output="data/stats_player_week_${year}.csv"
+            local url
+            for release in stats_player player_stats; do
+              url="https://github.com/nflverse/nflverse-data/releases/download/${release}/${filename}"
+              if curl --silent --show-error --fail --location --retry 2 "$url" --output "${output}.tmp"; then
+                if test -s "${output}.tmp" && head -n 1 "${output}.tmp" | grep -qi 'week'; then
+                  mv "${output}.tmp" "$output"
+                  echo "Downloaded ${filename} for ${year}"
+                  return 0
+                fi
+              fi
+              rm -f "${output}.tmp"
+            done
+            return 1
+          }
+
+          # The established weekly CSV release is used for 2020–2024 and 2026.
+          for year in 2020 2021 2022 2023 2024 2026; do
+            echo "Downloading weekly player statistics for ${year}"
+            download_asset "$year" "stats_player_week_${year}.csv" || {
+              echo "::error::Could not find the weekly player-stat CSV for ${year}. Check the nflverse release assets."
+              exit 1
+            }
+          done
+
+          # nflverse changed its player-stat release naming for 2025. Try the weekly
+          # filename first; if unavailable, combine that season's regular and playoff
+          # CSVs into the single file the dashboard expects.
+          echo "Downloading player statistics for 2025"
+          if ! download_asset 2025 stats_player_week_2025.csv; then
+            reg="$(mktemp)"
+            post="$(mktemp)"
+            got_reg=false
+            got_post=false
+            for release in stats_player player_stats; do
+              for filename in stats_player_reg_2025.csv player_stats_reg_2025.csv; do
+                url="https://github.com/nflverse/nflverse-data/releases/download/${release}/${filename}"
+                if curl --silent --show-error --fail --location --retry 2 "$url" --output "$reg" && test -s "$reg"; then got_reg=true; break 2; fi
+              done
+            done
+            for release in stats_player player_stats; do
+              for filename in stats_player_post_2025.csv player_stats_post_2025.csv; do
+                url="https://github.com/nflverse/nflverse-data/releases/download/${release}/${filename}"
+                if curl --silent --show-error --fail --location --retry 2 "$url" --output "$post" && test -s "$post"; then got_post=true; break 2; fi
+              done
+            done
+            if [[ "$got_reg" == true ]]; then
+              cp "$reg" data/stats_player_week_2025.csv
+              if [[ "$got_post" == true ]]; then
+                # Append playoff rows without duplicating the CSV header.
+                tail -n +2 "$post" >> data/stats_player_week_2025.csv
+              fi
+            else
+              echo "::error::Could not locate the 2025 player-stat CSV assets (weekly or regular-season)."
+              exit 1
+            fi
+            rm -f "$reg" "$post"
+          fi
+
+          for year in 2020 2021 2022 2023 2024 2025 2026; do
             test -s "data/stats_player_week_${year}.csv"
             head -n 1 "data/stats_player_week_${year}.csv" | grep -qi 'week'
           done
