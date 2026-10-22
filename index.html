@@ -373,27 +373,30 @@ function renderTeamCompare(){
  const missing=es.filter(e=>e.value===null);$('teamCompareMessage').textContent=!teams.length?'Select a team from the dropdown and click Add team; repeat to add more teams.':teams.length<2?'Choose at least two teams to compare.':!weeks.length?'Select at least one week.':missing.length?`No matching data for: ${missing.map(e=>e.label).join(', ')}. Other selected teams are shown where data is available.`:`Comparing ${teams.length} teams for ${year}. Differences and percentage differences are measured against ${base.label}. Team totals are based on available player-week rows; rate statistics are calculated from their underlying attempts where supported.`;
 }
 function fillSuggestions(){const players=[...new Set(raw.map(r=>r.player).filter(Boolean))].sort((a,b)=>a.localeCompare(b));$('playerSuggestions').innerHTML=players.map(n=>`<option value="${esc(n)}"></option>`).join('')}
-async function loadData(){setStatus('Loading season CSV files…');$('refreshBtn').disabled=true;const loaded=[],fail=[];for(const y of YEARS){try{const res=await fetch(`./data/stats_player_week_${y}.csv?v=${Date.now()}`,{cache:'no-store'});if(!res.ok)throw Error(`HTTP ${res.status}`);const txt=await res.text();if(txt.trimStart().startsWith('<'))throw Error('Response was HTML, not CSV');const parsed=parseCSV(txt);if(!parsed.length)throw Error('CSV was empty');loaded.push(...parsed.map(normalize).filter(r=>r.season===y&&r.week>=1&&r.week<=22&&r.player))}catch(e){fail.push(`${y}: ${e.message}`)}}raw=loaded;updateSelectors(true);fillSuggestions();renderComparisonCards();setupTeamCompare();$('kSeasons').textContent=[...new Set(raw.map(r=>r.season))].length;$('kRows').textContent=`${raw.length.toLocaleString()} player-week rows`;$('notes').textContent=fail.length?`Some season files were unavailable: ${fail.join(' · ')}. Only seasons with published CSVs can be queried.`:'All configured season files loaded successfully.';setStatus(raw.length?`Loaded ${raw.length.toLocaleString()} player-week rows. ${fail.length?`Unavailable files: ${fail.join(', ')}`:'All configured seasons loaded.'}`:'No data loaded. Check that data/stats_player_week_YEAR.csv files are published.',raw.length?(fail.length?'':'good'):'bad');$('refreshBtn').disabled=false;render()}
-
-function scheduleDateTime(g){
- const day=String(g.gameday||g.game_date||'').slice(0,10);
- const tm=String(g.gametime||g.game_time||'').trim();
- if(!day)return null;
- // nflverse gametime values are Eastern Time; use an explicit zone so DST is handled.
- if(!tm||tm==='TBD')return new Date(day+'T17:00:00Z');
- const m=tm.match(/^(\d{1,2}):(\d{2})/);
- if(!m)return new Date(day+'T17:00:00Z');
- const hh=String(+m[1]).padStart(2,'0'),mm=m[2];
- // Build the Eastern wall-clock time and iteratively resolve its UTC instant.
- const target=Date.UTC(+day.slice(0,4),+day.slice(5,7)-1,+day.slice(8,10),+hh,+mm);
- let guess=target;
- for(let i=0;i<3;i++){
-   const parts=new Intl.DateTimeFormat('en-GB',{timeZone:'America/New_York',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).formatToParts(new Date(guess));
-   const v=Object.fromEntries(parts.map(p=>[p.type,p.value]));
-   const represented=Date.UTC(+v.year,+v.month-1,+v.day,+v.hour,+v.minute);
-   guess+=target-represented;
- }
- return new Date(guess);
+async function loadData(){
+ // Load only the selected season to reduce peak memory use on mobile Safari.
+ setStatus('Loading '+($('year').value||'2026')+' season data…');
+ $('refreshBtn').disabled=true;
+ const y=+($('year').value||2026);
+ try{
+  const res=await fetch(`./data/stats_player_week_${y}.csv`,{cache:'default'});
+  if(!res.ok)throw Error(`HTTP ${res.status}`);
+  const txt=await res.text();
+  if(txt.trimStart().startsWith('<'))throw Error('Response was HTML, not CSV');
+  const parsed=parseCSV(txt);
+  if(!parsed.length)throw Error('CSV was empty');
+  raw=parsed.map(normalize).filter(r=>r.season===y&&r.week>=1&&r.week<=22&&r.player);
+  updateSelectors(true);fillSuggestions();renderComparisonCards();setupTeamCompare();
+  $('kSeasons').textContent=raw.length?1:0;
+  $('kRows').textContent=`${raw.length.toLocaleString()} player-week rows`;
+  $('notes').textContent=`Only ${y} data is loaded right now to keep the page responsive on phones. Change the season selector to load another season.`;
+  setStatus(raw.length?`Loaded ${raw.length.toLocaleString()} player-week rows for ${y}.`:'No data rows found for '+y+'.','good');
+ }catch(e){
+  raw=[];updateSelectors(true);renderComparisonCards();setupTeamCompare();
+  $('kSeasons').textContent='0';$('kRows').textContent='0 player-week rows';
+  $('notes').textContent=`Could not load ${y}: ${e.message}. Check that data/stats_player_week_${y}.csv is published.`;
+  setStatus(`Could not load ${y}: ${e.message}`,'bad');
+ }finally{$('refreshBtn').disabled=false;render()}
 }
 function scheduleField(r,keys){return first(r,keys)}
 function renderCalendar(){
