@@ -99,7 +99,7 @@ button{cursor:pointer;font-weight:750}button:hover{filter:brightness(1.13)}butto
 'use strict';
 const $=id=>document.getElementById(id);
 const YEARS=[2020,2021,2022,2023,2024,2025,2026];
-const TEAM_NAMES={ARI:'Arizona Cardinals',ATL:'Atlanta Falcons',BAL:'Baltimore Ravens',BUF:'Buffalo Bills',CAR:'Carolina Panthers',CHI:'Chicago Bears',CIN:'Cincinnati Bengals',CLE:'Cleveland Browns',DAL:'Dallas Cowboys',DEN:'Denver Broncos',DET:'Detroit Lions',GB:'Green Bay Packers',HOU:'Houston Texans',IND:'Indianapolis Colts',JAX:'Jacksonville Jaguars',JAC:'Jacksonville Jaguars',KC:'Kansas City Chiefs',LAC:'Los Angeles Chargers',LA:'Los Angeles Rams',LAR:'Los Angeles Rams',LV:'Las Vegas Raiders',OAK:'Las Vegas Raiders',MIA:'Miami Dolphins',MIN:'Minnesota Vikings',NE:'New England Patriots',NO:'New Orleans Saints',NYG:'New York Giants',NYJ:'New York Jets',PHI:'Philadelphia Eagles',PIT:'Pittsburgh Steelers',SEA:'Seattle Seahawks',SF:'San Francisco 49ers',SD:'Los Angeles Chargers',TB:'Tampa Bay Buccaneers',TEN:'Tennessee Titans',WAS:'Washington Commanders',WSH:'Washington Commanders'};
+const TEAM_NAMES={ARI:'Arizona Cardinals',ATL:'Atlanta Falcons',BAL:'Baltimore Ravens',BUF:'Buffalo Bills',CAR:'Carolina Panthers',CHI:'Chicago Bears',CIN:'Cincinnati Bengals',CLE:'Cleveland Browns',DAL:'Dallas Cowboys',DEN:'Denver Broncos',DET:'Detroit Lions',GB:'Green Bay Packers',HOU:'Houston Texans',IND:'Indianapolis Colts',JAX:'Jacksonville Jaguars',JAC:'Jacksonville Jaguars',KC:'Kansas City Chiefs',LAC:'Los Angeles Chargers',LA:'Los Angeles Rams',LAR:'Los Angeles Rams',LV:'Las Vegas Raiders',OAK:'Las Vegas Raiders',MIA:'Miami Dolphins',MIN:'Minnesota Vikings',NE:'New England Patriots',NO:'New Orleans Saints',NYG:'New York Giants',NYJ:'New York Jets',PHI:'Philadelphia Eagles',PIT:'Pittsburgh Steelers',SEA:'Seattle Seahawks',SF:'San Francisco 49ers',SD:'Los Angeles Chargers',STL:'Los Angeles Rams',TB:'Tampa Bay Buccaneers',TEN:'Tennessee Titans',WAS:'Washington Commanders',WSH:'Washington Commanders'};
 function teamName(code){const key=String(code??'').trim().toUpperCase();return TEAM_NAMES[key]||String(code??'—')}
 let raw=[],scheduleRows=[],view='weekly',week=1,selectedWeeks=[],comparisonCount=2;
 const aliases={player:['player_display_name','player_name','name'],team:['recent_team','team'],position:['position_group','position'],season:['season'],week:['week'],season_type:['season_type'],opponent:['opponent_team','opponent']};
@@ -185,6 +185,32 @@ function renderFactGeneratorForMetric(metricOverride){
  const weeklyLeaders=[...perWeek.entries()].map(([w,mp])=>({week:w,leaders:[...mp.values()].map(g=>({...g,value:aggregate(g.rows,metric)})).filter(g=>g.value!==null&&Number.isFinite(g.value)).sort((a,b)=>b.value-a.value)})).filter(x=>x.leaders.length).sort((a,b)=>a.week-b.week);
  weeklyLeaders.forEach(w=>{const g=w.leaders[0];facts.push({text:`Week ${w.week}: ${g.player} (${teamName(g.team)}) was the top performer in ${label.toLowerCase()} at ${fmt(g.value,metric)}.`,detail:`Highest available player value in Week ${w.week} under the selected season, phase, team and player filters.`})});
  if(weeklyLeaders.length>1){const firstW=weeklyLeaders[0],lastW=weeklyLeaders[weeklyLeaders.length-1],firstG=firstW.leaders[0],lastG=lastW.leaders[0];facts.push({text:`The Week ${firstW.week} leader posted ${fmt(firstG.value,metric)}, compared with ${fmt(lastG.value,metric)} for the Week ${lastW.week} leader in Week ${lastW.week}.`,detail:`These are each week's leaders, not necessarily the same player; use as a week-by-week snapshot rather than a player trend.`})}
+ // Add player-level observations so the requested fact count can be met
+ // even when there are few distinct weekly leaders.
+ const existingFactTexts = new Set(facts.map(f => f.text));
+ const lowToHigh = [...stats].sort((a,b)=>a.value-b.value);
+ const highToLow = [...stats].sort((a,b)=>b.value-a.value);
+ const factName = (g) => `${g.player} (${teamName(g.team)})`;
+ const factValue = (g) => fmt(g.value, metric);
+ const lowLabel = label.toLowerCase();
+ for (const g of lowToHigh) {
+   if (facts.length >= count) break;
+   const text = metric === 'pass_yards_per_attempt'
+     ? `${factName(g)} averaged ${factValue(g)} per pass attempt, a low mark among the selected players.`
+     : `${factName(g)} recorded just ${factValue(g)} in ${lowLabel}, the lowest available mark among the selected players.`;
+   if (!existingFactTexts.has(text)) {
+     facts.push({text, detail:`Low-end result for ${year} ${phase}, using the selected weeks and filters.`});
+     existingFactTexts.add(text);
+   }
+ }
+ for (const g of highToLow) {
+   if (facts.length >= count) break;
+   const text = `${factName(g)} recorded ${factValue(g)} in ${lowLabel} across the selected weeks.`;
+   if (!existingFactTexts.has(text)) {
+     facts.push({text, detail:`Player-level result from the loaded CSV for ${year} ${phase}.`});
+     existingFactTexts.add(text);
+   }
+ }
  const filteredFacts=facts.slice(0,count);
  $('factNotice').textContent=`Using ${rows.length.toLocaleString()} loaded player-week rows for ${year} (${phase}), weeks ${selectedWeeks.length?selectedWeeks.join(', '):'none'}. ${filteredFacts.length} fact(s) generated. Facts include leaderboards, low marks, averages and weekly leaders where the selected data supports them. Values come from the loaded CSV; check context before publishing.`;
  $('factContent').innerHTML=filteredFacts.length?`<ol>${filteredFacts.map(f=>`<li style="margin:12px 0"><b>${esc(f.text)}</b><div class="small muted">${esc(f.detail)}</div></li>`).join('')}</ol>`:'<p class="muted">No facts found. Check that the season, phase and week selection match the loaded data.</p>';
@@ -198,21 +224,43 @@ function renderFactGenerator(){
  const selected=[...sel.selectedOptions].map(o=>o.value);
  const chosen=selected.length?selected:[(sel.options[0]||{}).value].filter(Boolean);
  if(!chosen.length){$('factNotice').textContent='Choose at least one statistic.';$('factContent').innerHTML='';window.generatedNFLFacts=[];return;}
- const allFacts=[];
+ const requested=+$('factCount').value||10;
  const panels=[];
+ const factsByMetric=[];
  let totalRows=0;
  for(const metric of chosen){
   renderFactGeneratorForMetric(metric);
   const label=(metrics[metric]||{}).label||metric;
-  panels.push(`<h3 style="margin-top:18px">${esc(label)}</h3>${$('factContent').innerHTML}`);
-  const notice=$('factNotice').textContent;
-  const match=notice.match(/Using ([\d,]+) loaded player-week rows/);
+  const match=$('factNotice').textContent.match(/Using ([\d,]+) loaded player-week rows/);
   if(match) totalRows=Math.max(totalRows,Number(match[1].replace(/,/g,'')));
-  allFacts.push(...(window.generatedNFLFacts||[]).map(text=>`[${label}] ${text}`));
+  factsByMetric.push({metric,label,facts:(window.generatedNFLFacts||[]).map(line=>({line,metric,label}))});
+ }
+ // The selected count is the total across all selected statistics, not per statistic.
+ const allFacts=[];
+ let cursor=0;
+ while(allFacts.length<requested){
+   let added=false;
+   for(const group of factsByMetric){
+     if(cursor<group.facts.length && allFacts.length<requested){
+       const item=group.facts[cursor];
+       allFacts.push({text:`[${item.label}] ${item.line}`,label:item.label});
+       added=true;
+     }
+   }
+   if(!added) break;
+   cursor++;
+ }
+ const byLabel=new Map();
+ for(const item of allFacts){
+   if(!byLabel.has(item.label)) byLabel.set(item.label,[]);
+   byLabel.get(item.label).push(item.text.replace(`[${item.label}] `,''));
+ }
+ for(const [label,items] of byLabel){
+   panels.push(`<h3 style="margin-top:18px">${esc(label)}</h3><ol>${items.map(t=>`<li style="margin:12px 0"><b>${esc(t.split(' — ')[0])}</b>${t.includes(' — ')?`<div class="small muted">${esc(t.split(' — ').slice(1).join(' — '))}</div>`:''}</li>`).join('')}</ol>`);
  }
  $('factContent').innerHTML=panels.join('');
- $('factNotice').textContent=`Selected ${chosen.length} statistic(s). Generated ${allFacts.length} facts across the selected statistics. ${totalRows.toLocaleString()} player-week rows available under the current filters.`;
- window.generatedNFLFacts=allFacts;
+ $('factNotice').textContent=`Selected ${chosen.length} statistic(s). Generated ${allFacts.length} of ${requested} requested facts across those statistics. ${totalRows.toLocaleString()} player-week rows available under the current filters.`;
+ window.generatedNFLFacts=allFacts.map(f=>f.text);
 }
 function render(){const compare=view==='playercompare',teamcompare=view==='teamcompare',factgen=view==='factgen';$('leaguePanel').classList.add('hidden');$('bracketPanel').classList.add('hidden');$('factPanel').classList.toggle('hidden',!factgen);$('calendarPanel').classList.toggle('hidden',view!=='calendar');$('mainPanel').classList.toggle('hidden',compare||teamcompare||factgen);$('comparePanel').classList.toggle('hidden',!compare);$('teamComparePanel').classList.toggle('hidden',!teamcompare);if(compare){renderPlayerCompare();return}if(teamcompare){renderTeamCompare();return}if(factgen){renderFactGenerator();return}if(!raw.length)return;const k=$('metric').value,label=metrics[k].label;let data=sortData(currentData());if(view==='team'){const map=new Map();filtered().filter(r=>selectedWeeks.includes(r.week)).forEach(r=>{if(!map.has(r.team))map.set(r.team,[]);map.get(r.team).push(r)});data=[...map.entries()].map(([team,rs])=>{const o={player:team,team,position:'TEAM',rows:rs};for(const [mk,m] of Object.entries(metrics)){const vals=rs.map(r=>metricValue(r,mk)).filter(v=>v!==null);if(m.rate){const a=rs.reduce((s,r)=>s+num(r.attempts),0),c=rs.reduce((s,r)=>s+num(r.completions),0);o[mk]=a?100*c/a:null}else if(m.average){const a=vals.filter(v=>v!==null&&Number.isFinite(Number(v)));o[mk]=a.length?a.reduce((x,y)=>x+Number(y),0)/a.length:null}else if(m.rating)o[mk]=passerRatingForRows(rs);else if(m.derived){const total=key=>rs.reduce((s,r)=>s+num(r[key]),0),att=total('attempts'),cmp=total('completions'),py=total('passing_yards'),ptd=total('passing_tds'),ints=total('passing_interceptions'),carries=rs.reduce((s,r)=>s+num(first(r,['carries','rushing_attempts'])),0),ry=total('rushing_yards'),rec=total('receptions'),targets=total('targets'),recy=total('receiving_yards');if(mk==='pass_yards_per_attempt')o[mk]=att?py/att:null;else if(mk==='pass_td_pct')o[mk]=att?100*ptd/att:null;else if(mk==='pass_int_pct')o[mk]=att?100*ints/att:null;else if(mk==='td_int_ratio')o[mk]=ints?ptd/ints:(ptd>0?ptd:null);else if(mk==='rushing_yards_per_carry')o[mk]=carries?ry/carries:null;else if(mk==='receiving_yards_per_catch')o[mk]=rec?recy/rec:null;else if(mk==='catch_rate')o[mk]=targets?100*rec/targets:null;else o[mk]=vals.length?vals.reduce((a,b)=>a+b,0):null}else o[mk]=vals.length?vals.reduce((a,b)=>a+b,0):null}return o}).sort((a,b)=>(b[k]??-Infinity)-(a[k]??-Infinity))}
 data=data.filter(r=>r[k]!==null&&r[k]!==undefined&&Number(r[k])!==0);$('tableTitle').textContent=view==='weekly'?`Week ${+$('weekSelect').value||week}, ${$('year').value} · ${label}`:view==='cumulative'?`Selected weeks total · ${label}`:view==='compare'?`Player-week rows · ${label}`:`Team totals · ${label}`;$('viewTag').textContent=view.toUpperCase();const cols=view==='compare'?['Rank','Player','Team','Pos','Week',label]:['Rank',view==='team'?'Team':'Player','Team','Pos',label,...(view==='cumulative'?['Games']:[])];headers(cols);$('tbody').innerHTML=data.slice(0,500).map((r,i)=>`<tr><td class="rank">${i+1}</td><td><b>${esc(r.player||'Unknown')}</b></td><td>${esc(teamName(r.team||'—'))}</td><td>${esc(r.position||'—')}</td>${view==='compare'?`<td>${r.week}</td>`:''}<td class="num"><b>${fmt(r[k],k)}</b></td>${view==='cumulative'?`<td class="num">${r.rows.length}</td>`:''}</tr>`).join('');$('emptyNote').classList.toggle('hidden',data.length>0);if(!data.length)$('tbody').innerHTML=`<tr><td colspan="${cols.length}" class="muted">No matching rows for these filters.</td></tr>`;$('kPlayers').textContent=new Set(data.map(r=>r.player)).size.toLocaleString();$('kWeeks').textContent=`${selectedWeeks.length}/${availableWeeks().length}`;$('kLeader').textContent=data[0]?.player||'—';$('kLeaderNote').textContent=data.length?`${fmt(data[0][k],k)} ${label.toLowerCase()}`:'No qualifying rows';drawChart(k);$('chartCaption').textContent=`${$('phase').selectedOptions[0].text} · ${$('year').value}`}
