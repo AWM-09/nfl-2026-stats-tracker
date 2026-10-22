@@ -1,4 +1,3 @@
-
 name: Update NFL stats and deploy dashboard
 
 on:
@@ -103,6 +102,145 @@ jobs:
             test -s "data/stats_player_week_${year}.csv"
             head -n 1 "data/stats_player_week_${year}.csv" | grep -qi 'week'
           done
+
+      - name: Download Next Gen Stats passing data
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --silent --show-error --fail --location --retry 3 \
+            "https://github.com/nflverse/nflverse-data/releases/download/nextgen_stats/ngs_passing.csv" \
+            --output data/ngs_passing.csv
+          test -s data/ngs_passing.csv
+          head -n 1 data/ngs_passing.csv | grep -q 'avg_time_to_throw'
+
+      - name: Merge average time to throw into weekly player stats
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import csv
+          import re
+          import unicodedata
+          from pathlib import Path
+
+          def norm(value):
+              value = unicodedata.normalize("NFKD", str(value or ""))
+              value = "".join(c for c in value if not unicodedata.combining(c))
+              return re.sub(r"[^a-z0-9]", "", value.lower())
+
+          def integer(value):
+              try:
+                  return int(float(str(value).strip()))
+              except (ValueError, TypeError):
+                  return None
+
+          ngs_path = Path("data/ngs_passing.csv")
+          with ngs_path.open(newline="", encoding="utf-8-sig") as f:
+              reader = csv.DictReader(f)
+              ngs_rows = list(reader)
+              ngs_headers = reader.fieldnames or []
+
+          required = {
+              "season", "week", "player_display_name",
+              "team_abbr", "season_type", "avg_time_to_throw"
+          }
+          missing = required.difference(ngs_headers)
+          if missing:
+              raise SystemExit(
+                  f"NGS CSV missing expected columns: {sorted(missing)}"
+              )
+
+          # nflverse NGS uses regular-season week numbers and postseason
+          # week numbers separately. Preserve season type in the join key.
+          index = {}
+          for row in ngs_rows:
+              season = integer(row.get("season"))
+              week = integer(row.get("week"))
+              value = (row.get("avg_time_to_throw") or "").strip()
+              if season is None or week is None or not value:
+                  continue
+
+              season_type = (row.get("season_type") or "").strip().upper()
+              key = (
+                  season, week, season_type,
+                  norm(row.get("player_display_name")),
+                  norm(row.get("team_abbr"))
+              )
+              index[key] = value
+
+          total_matched = 0
+          for path in sorted(Path("data").glob("stats_player_week_*.csv")):
+              with path.open(newline="", encoding="utf-8-sig") as f:
+                  reader = csv.DictReader(f)
+                  rows = list(reader)
+                  headers = reader.fieldnames or []
+
+              def find_column(candidates):
+                  lookup = {h.lower(): h for h in headers}
+                  return next(
+                      (lookup[c.lower()] for c in candidates
+                       if c.lower() in lookup),
+                      None
+                  )
+
+              season_col = find_column(["season"])
+              week_col = find_column(["week"])
+              name_col = find_column(
+                  ["player_display_name", "player_name", "name"]
+              )
+              team_col = find_column(
+                  ["team_abbr", "recent_team", "team"]
+              )
+              type_col = find_column(["season_type"])
+
+              if not all([season_col, week_col, name_col, team_col]):
+                  raise SystemExit(
+                      f"Cannot identify season/week/player/team columns in "
+                      f"{path}. Columns found: {headers}"
+                  )
+
+              if "avg_time_to_throw" not in headers:
+                  headers.append("avg_time_to_throw")
+
+              matched = 0
+              for row in rows:
+                  row["avg_time_to_throw"] = ""
+                  season = integer(row.get(season_col))
+                  week = integer(row.get(week_col))
+                  if season is None or week is None or week == 0:
+                      continue
+
+                  season_type = (
+                      (row.get(type_col) or "").strip().upper()
+                      if type_col else ("POST" if week > 18 else "REG")
+                  )
+                  # nflverse player-week files usually use weeks 1-18 for
+                  # regular season and 19+ for playoffs. Convert playoff
+                  # week to the NGS postseason-relative week number.
+                  ngs_week = week - 18 if season_type == "POST" and week >= 19 else week
+                  key = (
+                      season, ngs_week, season_type,
+                      norm(row.get(name_col)), norm(row.get(team_col))
+                  )
+                  value = index.get(key)
+                  if value is not None:
+                      row["avg_time_to_throw"] = value
+                      matched += 1
+
+              with path.open("w", newline="", encoding="utf-8") as f:
+                  writer = csv.DictWriter(
+                      f, fieldnames=headers, extrasaction="ignore"
+                  )
+                  writer.writeheader()
+                  writer.writerows(rows)
+
+              total_matched += matched
+              print(
+                  f"{path}: matched {matched}/{len(rows)} player-week rows"
+              )
+
+          print(f"Total matched player-week rows: {total_matched}")
+          PY
 
       - name: Download NFL schedule and scores
         shell: bash
