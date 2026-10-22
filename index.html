@@ -32,7 +32,30 @@ button{cursor:pointer;font-weight:750}button:hover{filter:brightness(1.13)}butto
 @media(max-width:540px){.calendar-controls{grid-template-columns:1fr 1fr}.game-row{grid-template-columns:1fr;gap:8px}.game-status{justify-self:start}}
 @media(max-width:900px){.controls{grid-template-columns:repeat(2,minmax(0,1fr))}.lower{grid-template-columns:1fr}}
 @media(max-width:540px){main{padding:16px 10px}.kpis{grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}.card{padding:12px}.value{font-size:23px}.controls{grid-template-columns:1fr 1fr}.controls .field:first-child{grid-column:1/-1}.actions button{flex:1}}
- .selected-team-list{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}.selected-team-chip{color:#000!important;background:#fff!important;display:inline-flex;align-items:center;gap:8px;padding:6px 10px;border:1px solid var(--line,#ccd);border-radius:999px;background:var(--card,#f6f7f9);font-size:13px}.selected-team-chip button{border:0;background:transparent;cursor:pointer;font-weight:700;font-size:16px;line-height:1;padding:0 2px;color:inherit}
+ .selected-team-list{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}.selected-team-chip{color:#eaf2f8!important;background:#183044!important;border-color:#35556b!important;display:inline-flex;align-items:center;gap:8px;padding:6px 10px;border:1px solid var(--line,#ccd);border-radius:999px;background:var(--card,#f6f7f9);font-size:13px}.selected-team-chip button{border:0;background:transparent;cursor:pointer;font-weight:700;font-size:16px;line-height:1;padding:0 2px;color:inherit}
+
+/* Team comparison: dark multi-select and removable statistic chips */
+#teamCompareStat, #factStats {
+  color: var(--text, #eaf2f8) !important;
+  background: #0b1824 !important;
+  border: 1px solid var(--line, #294052) !important;
+  color-scheme: dark;
+}
+#teamCompareStat option, #factStats option {
+  color: #eaf2f8 !important;
+  background: #0b1824 !important;
+}
+#teamCompareStat option:checked, #factStats option:checked {
+  color: #07131d !important;
+  background: #70d8b7 !important;
+}
+#teamCompareSelectedStats .selected-team-chip {
+  color: #eaf2f8 !important;
+  background: #183044 !important;
+  border-color: #35556b !important;
+}
+#teamCompareSelectedStats .selected-team-chip button { color: #eaf2f8 !important; }
+
 </style>
 </head>
 <body>
@@ -87,7 +110,7 @@ button{cursor:pointer;font-weight:750}button:hover{filter:brightness(1.13)}butto
 </section>
 <section class="panel" id="mainPanel"><div class="panel-head"><h2 id="tableTitle">Weekly leaderboard</h2><span class="tag" id="viewTag">WEEKLY</span></div><div class="tablewrap"><table><thead id="thead"></thead><tbody id="tbody"><tr><td>Loading data…</td></tr></tbody></table></div><div class="notice hidden" id="emptyNote">No matching rows. Try another filter or week.</div></section>
 <section class="panel hidden" id="comparePanel"><div class="panel-head"><h2>Compare any number of players</h2><span class="tag">CUSTOM COMPARISON</span></div><div class="notice">Every player has their own name, statistic, season, phase and week. Names can be typed directly; suggestions appear when matching data is loaded.</div><div class="comparison-cards" id="comparisonCards"></div><div class="actions" style="margin:12px 0"><button class="primary" id="addComparisonBtn">+ Add player</button><button id="removeComparisonBtn">Remove last player</button></div><div class="tablewrap"><table><thead id="comparisonHead"></thead><tbody id="comparisonBody"></tbody></table></div><section class="panel" style="margin-top:12px"><div class="panel-head"><h2>Comparison chart</h2><span class="tag">SELECTED TOTALS</span></div><div class="compare-subtitle" id="comparisonChartCaption">Choose players using the same statistic to compare their totals.</div><div id="comparisonChart" class="comparison-chart"><div class="muted">Your comparison chart will appear here.</div></div></section><div class="notice" id="comparisonMessage">Choose players and their settings to compare them.</div></section>
-<section class="panel hidden" id="teamComparePanel"><div class="panel-head"><h2>Compare NFL teams</h2><span class="tag">TEAM COMPARISON</span></div><div class="notice">Select one or more statistics, a season, season phase and weeks, then compare multiple teams. Hold Command (Mac) or Ctrl (Windows) to select multiple statistics.</div><div class="comparison-cards" id="teamCompareControls"><div class="comparison-card"><div class="field"><label for="teamCompareStat">Statistics to compare (hold Command/Ctrl to select multiple)</label><select id="teamCompareStat" multiple size="6"></select></div><div class="field"><label for="teamCompareYear">Season</label><select id="teamCompareYear"></select></div><div class="field"><label for="teamComparePhase">Season phase</label><select id="teamComparePhase"><option value="REG">Regular season</option><option value="POST">Playoffs</option><option value="ALL">Regular + playoffs</option></select></div><div class="field"><label for="teamCompareTeamSelect">Select a team</label><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><select id="teamCompareTeamSelect" style="flex:1;min-width:200px"></select><button class="btn primary" type="button" id="addTeamCompareBtn">Add team</button></div><div class="small muted">Choose one team, then click Add team. Repeat to compare more teams.</div><div id="teamCompareSelectedTeams" class="selected-team-list" aria-live="polite"></div></div><div class="field"><label>Weeks to include</label><div class="week-tools"><button class="btn" type="button" id="teamWeeksAll">Select all available</button><button class="btn" type="button" id="teamWeeksClear">Clear</button></div><div class="compare-weeks" id="teamCompareWeeks"></div></div></div></div><div class="tablewrap"><table><thead id="teamCompareHead"></thead><tbody id="teamCompareBody"></tbody></table></div><section class="panel" style="margin-top:12px"><div class="panel-head"><h2>Team comparison chart</h2><span class="tag">SELECTED WEEKS</span></div><div class="compare-subtitle" id="teamCompareCaption">Select at least two teams and a statistic.</div><div id="teamCompareChart" class="comparison-chart"><div class="muted">Your team comparison chart will appear here.</div></div></section><div class="notice" id="teamCompareMessage">Select teams and weeks to compare them.</div></section>
+<section class="panel hidden" id="teamComparePanel"><div class="panel-head"><h2>Compare NFL teams</h2><span class="tag">TEAM COMPARISON</span></div><div class="notice">Add the statistics and teams you want to compare, then choose the season, phase and weeks.</div><div class="comparison-cards" id="teamCompareControls"><div class="comparison-card"><div class="field"><label for="teamCompareStat">Choose statistics</label><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><select id="teamCompareStat" multiple size="6" style="flex:1;min-width:220px"></select><button class="btn primary" type="button" id="addTeamCompareStatsBtn">Add statistics</button></div><div class="small muted">Select one or more statistics, then click Add statistics.</div><div id="teamCompareSelectedStats" class="selected-team-list" aria-live="polite"></div></div><div class="field"><label for="teamCompareYear">Season</label><select id="teamCompareYear"></select></div><div class="field"><label for="teamComparePhase">Season phase</label><select id="teamComparePhase"><option value="REG">Regular season</option><option value="POST">Playoffs</option><option value="ALL">Regular + playoffs</option></select></div><div class="field"><label for="teamCompareTeamSelect">Select a team</label><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><select id="teamCompareTeamSelect" style="flex:1;min-width:200px"></select><button class="btn primary" type="button" id="addTeamCompareBtn">Add team</button></div><div class="small muted">Choose one team, then click Add team. Repeat to compare more teams.</div><div id="teamCompareSelectedTeams" class="selected-team-list" aria-live="polite"></div></div><div class="field"><label>Weeks to include</label><div class="week-tools"><button class="btn" type="button" id="teamWeeksAll">Select all available</button><button class="btn" type="button" id="teamWeeksClear">Clear</button></div><div class="compare-weeks" id="teamCompareWeeks"></div></div></div></div><div class="tablewrap"><table><thead id="teamCompareHead"></thead><tbody id="teamCompareBody"></tbody></table></div><section class="panel" style="margin-top:12px"><div class="panel-head"><h2>Team comparison chart</h2><span class="tag">SELECTED WEEKS</span></div><div class="compare-subtitle" id="teamCompareCaption">Select at least two teams and a statistic.</div><div id="teamCompareChart" class="comparison-chart"><div class="muted">Your team comparison chart will appear here.</div></div></section><div class="notice" id="teamCompareMessage">Select teams and weeks to compare them.</div></section>
 <section class="lower">
 <section class="panel"><div class="panel-head"><h2 id="chartTitle">Weekly trend</h2><span class="tag">SELECTED WEEKS</span></div><div class="chart" id="chart"><div class="muted">Chart appears when data is loaded.</div></div><div class="small muted" id="chartCaption" style="margin-top:9px"></div></section>
 <section class="panel"><div class="panel-head"><h2>Data notes</h2><span class="tag">SOURCE</span></div><div class="small muted" id="notes">Loading local season CSV files from the data folder.</div><div class="notice">Passer rating is calculated from completions, attempts, passing yards, passing touchdowns and interceptions when those fields are available. Added advanced metrics include passing efficiency, rushing/receiving efficiency, catch rate, total offensive yards/touchdowns, tackles, defensive impact plays and standard fantasy points (0.5 PPR). Derived stats require the relevant source fields; unavailable data is shown as a dash rather than treated as a real zero.</div></section>
@@ -310,14 +333,33 @@ function teamCompareValue(team,k,year,weeks,phase){
  return {value,games:new Set(rr.map(r=>`${r.week}|${r.player}`)).size,weeksFound:[...new Set(rr.map(r=>+r.week))].sort((a,b)=>a-b)};
 }
 let selectedTeamCompareTeams=[];
+let selectedTeamCompareStats=['passing_yards'];
 function renderSelectedTeamChips(){
  const box=$('teamCompareSelectedTeams'); if(!box)return;
  box.innerHTML=selectedTeamCompareTeams.map(t=>`<span class="selected-team-chip">${esc(teamName(t))}<button type="button" data-remove-team="${esc(t)}" aria-label="Remove ${esc(teamName(t))}" title="Remove team">×</button></span>`).join('') || '<span class="small muted">No teams added yet.</span>';
  box.querySelectorAll('[data-remove-team]').forEach(b=>b.addEventListener('click',()=>{selectedTeamCompareTeams=selectedTeamCompareTeams.filter(t=>t!==b.dataset.removeTeam);renderSelectedTeamChips();renderTeamCompare()}));
 }
+function renderSelectedTeamCompareStats(){
+ const box=$('teamCompareSelectedStats');
+ if(!box)return;
+ box.innerHTML=selectedTeamCompareStats.map(k=>`<span class="selected-team-chip">${esc(metrics[k]?.label||k)}<button type="button" data-remove-stat="${esc(k)}" aria-label="Remove ${esc(metrics[k]?.label||k)}" title="Remove statistic">×</button></span>`).join('') || '<span class="small muted">No statistics added yet.</span>';
+ box.querySelectorAll('[data-remove-stat]').forEach(b=>b.addEventListener('click',()=>{
+   selectedTeamCompareStats=selectedTeamCompareStats.filter(k=>k!==b.dataset.removeStat);
+   renderSelectedTeamCompareStats();renderTeamCompare();
+ }));
+}
 function setupTeamCompare(){
  $('teamCompareStat').innerHTML=Object.entries(metrics).map(([k,m])=>`<option value="${k}">${esc(m.label)}</option>`).join('');
- [...$('teamCompareStat').options].forEach(o=>o.selected=o.value==='passing_yards');
+ [...$('teamCompareStat').options].forEach(o=>o.selected=false);
+ selectedTeamCompareStats=['passing_yards'];renderSelectedTeamCompareStats();
+ $('addTeamCompareStatsBtn').onclick=()=>{
+   const picked=[...$('teamCompareStat').selectedOptions].map(o=>o.value);
+   if(!picked.length){$('teamCompareMessage').textContent='Select one or more statistics first.';return}
+   const added=picked.filter(k=>!selectedTeamCompareStats.includes(k));
+   selectedTeamCompareStats=[...selectedTeamCompareStats,...added];
+   renderSelectedTeamCompareStats();renderTeamCompare();
+   $('teamCompareMessage').textContent=added.length?'Statistics added.':'Those statistics are already added.';
+ };
  $('teamCompareYear').innerHTML=YEARS.slice().reverse().map(y=>`<option value="${y}">${y}</option>`).join('');$('teamCompareYear').value='2026';
  const teams=[...new Set(raw.map(r=>r.team).filter(Boolean))].sort((a,b)=>teamName(a).localeCompare(teamName(b)));
  $('teamCompareTeamSelect').innerHTML='<option value="">Choose a team…</option>'+teams.map(t=>`<option value="${esc(t)}">${esc(teamName(t))}</option>`).join('');
@@ -325,7 +367,7 @@ function setupTeamCompare(){
  $('addTeamCompareBtn').onclick=()=>{const t=$('teamCompareTeamSelect').value;if(!t){$('teamCompareMessage').textContent='Choose a team first.';return}if(selectedTeamCompareTeams.includes(t)){$('teamCompareMessage').textContent=`${teamName(t)} has already been added.`;return}selectedTeamCompareTeams.push(t);renderSelectedTeamChips();renderTeamCompare()};
  const ws=[...new Set(raw.filter(r=>r.season===+$('teamCompareYear').value).map(r=>r.week))].sort((a,b)=>a-b);
  $('teamCompareWeeks').innerHTML=ws.map(w=>`<label><input type="checkbox" data-team-week value="${w}" checked>W${w}</label>`).join('');
- ['teamCompareStat','teamCompareYear','teamComparePhase'].forEach(id=>$(id).addEventListener('change',()=>{if(id==='teamCompareYear')refreshTeamWeeks();renderTeamCompare()}));
+ ['teamCompareYear','teamComparePhase'].forEach(id=>$(id).addEventListener('change',()=>{if(id==='teamCompareYear')refreshTeamWeeks();renderTeamCompare()}));
  $('teamCompareWeeks').addEventListener('change',renderTeamCompare);
  $('teamWeeksAll').onclick=()=>{$('teamCompareWeeks').querySelectorAll('input').forEach(e=>e.checked=true);renderTeamCompare()};
  $('teamWeeksClear').onclick=()=>{$('teamCompareWeeks').querySelectorAll('input').forEach(e=>e.checked=false);renderTeamCompare()};
@@ -333,8 +375,7 @@ function setupTeamCompare(){
 function refreshTeamWeeks(){const ws=[...new Set(raw.filter(r=>r.season===+$('teamCompareYear').value).map(r=>r.week))].sort((a,b)=>a-b);$('teamCompareWeeks').innerHTML=ws.map(w=>`<label><input type="checkbox" data-team-week value="${w}" checked>W${w}</label>`).join('')}
 function renderTeamCompare(){
  if(!$('teamCompareStat'))return;
- const selectedStats=[...$('teamCompareStat').selectedOptions].map(o=>o.value);
- const chosen=selectedStats.length?selectedStats:['passing_yards'];
+ const chosen=selectedTeamCompareStats.length?selectedTeamCompareStats:['passing_yards'];
  const year=+$('teamCompareYear').value,phase=$('teamComparePhase').value;
  const teams=[...selectedTeamCompareTeams],weeks=[...$('teamCompareWeeks').querySelectorAll('input:checked')].map(e=>+e.value);
  const head=$('teamCompareHead'),body=$('teamCompareBody');
