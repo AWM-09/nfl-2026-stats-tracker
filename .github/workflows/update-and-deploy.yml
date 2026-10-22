@@ -108,8 +108,10 @@ jobs:
         run: |
           set -euo pipefail
           curl --silent --show-error --fail --location --retry 3 \
-            "https://github.com/nflverse/nflverse-data/releases/download/nextgen_stats/ngs_passing.csv" \
+            "https://github.com/nflverse/nflverse-data/releases/download/nextgen_stats/ngs_passing.csv.gz" \
             --output data/ngs_passing.csv
+          test -s data/ngs_passing.csv.gz
+          gzip -dc data/ngs_passing.csv.gz > data/ngs_passing.csv
           test -s data/ngs_passing.csv
           head -n 1 data/ngs_passing.csv | grep -q 'avg_time_to_throw'
 
