@@ -65,6 +65,19 @@ select option:checked {
 #factMetric,#factPlayers,#factTeams{width:100%;min-height:150px;background:#0b1824;color:#eaf2f8;border:1px solid #294052;border-radius:10px;padding:8px}
 #factMetric option:checked,#factPlayers option:checked,#factTeams option:checked{background:#245b50;color:#fff}
 @media(max-width:640px){#factPanel .grid{grid-template-columns:1fr!important}#factMetric,#factPlayers,#factTeams{min-height:130px;font-size:16px}}
+ 
+/* Statistical Fact Generator: compact dropdown + Add + removable chips */
+#factPanel select.fact-dropdown{width:100%;min-width:0;min-height:42px;background:#0b1824;color:#eaf2f8;border:1px solid #294052;border-radius:10px;padding:10px;font-size:14px;color-scheme:dark}
+#factPanel select.fact-dropdown option{background:#0b1824;color:#eaf2f8}
+#factPanel .fact-add-row{display:flex;gap:8px;align-items:stretch}
+#factPanel .fact-add-row .fact-dropdown{flex:1}
+#factPanel .fact-add-btn{min-width:64px;background:var(--accent);color:#07130f;border:0;border-radius:10px;padding:8px 14px;font-weight:800;cursor:pointer}
+#factPanel .fact-chips{display:flex;flex-wrap:wrap;gap:7px;margin-top:9px;min-height:0}
+#factPanel .fact-chip{display:inline-flex;align-items:center;gap:8px;background:#17382f;border:1px solid #2d8068;color:#eafff7;border-radius:999px;padding:6px 10px;font-size:12px;max-width:100%}
+#factPanel .fact-chip span{overflow-wrap:anywhere}
+#factPanel .fact-chip button{background:transparent;border:0;color:#eafff7;font-size:17px;line-height:1;padding:0;min-height:20px;cursor:pointer}
+#factPanel select#factMetric,#factPanel select#factPlayers,#factPanel select#factTeams{display:none!important}
+@media(max-width:640px){#factPanel .grid{grid-template-columns:1fr!important}#factPanel .fact-add-row{gap:7px}#factPanel .fact-add-btn{min-width:60px}}
 </style>
 </head>
 <body>
@@ -102,7 +115,10 @@ select option:checked {
 </nav>
 <section class="panel hidden" id="leaguePanel"><div class="panel-head"><h2 id="leagueTitle">NFL Standings</h2><span class="tag" id="leagueTag">AS IT STANDS</span></div><div class="field" style="max-width:220px;margin-bottom:12px"><label for="leagueYear">Season</label><select id="leagueYear"><option value="2026">2026</option><option value="2025">2025</option><option value="2024">2024</option><option value="2023">2023</option><option value="2022">2022</option><option value="2021">2021</option><option value="2020">2020</option></select></div><div class="notice" id="leagueNotice">Standings are calculated from completed games in the schedule data.</div><div id="leagueContent"></div></section>
 <section class="panel hidden" id="bracketPanel"><div class="panel-head"><h2>Playoff Bracket</h2><span class="tag">AS IT STANDS</span></div><div class="field" style="max-width:220px;margin-bottom:12px"><label for="bracketYear">Season</label><select id="bracketYear"><option value="2026">2026</option><option value="2025">2025</option><option value="2024">2024</option><option value="2023">2023</option><option value="2022">2022</option><option value="2021">2021</option><option value="2020">2020</option></select></div><div class="notice" id="bracketNotice">Projected matchups if the season ended today. The projection updates from completed games; it is not an official NFL tiebreaker engine.</div><div id="bracketContent"></div></section>
-<section class="panel hidden" id="factPanel"><div class="panel-head"><h2>Statistical Fact Generator</h2><span class="tag">NFL DATA ONLY</span></div><p class="muted">Generate evidence-based facts from the loaded player-week CSV. Facts use the selected season, phase, team, position and weeks; no external stats are invented.</p><div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px"><div class="field"><label for="factMetric">Statistics (select multiple)</label><select id="factMetric" multiple size="6" aria-describedby="factMetricHint"></select><div id="factMetricHint" class="small muted">Select one or more statistics.</div></div><div class="field"><label for="factPlayers">Players (optional; select multiple)</label><select id="factPlayers" multiple size="6" aria-describedby="factPlayersHint"></select><div id="factPlayersHint" class="small muted">Leave empty to include all players.</div></div><div class="field"><label for="factTeams">Teams (optional; select multiple)</label><select id="factTeams" multiple size="6" aria-describedby="factTeamsHint"></select><div id="factTeamsHint" class="small muted">Leave empty to include all teams.</div></div><div class="field"><label for="factCount">Number of facts</label><select id="factCount"><option value="10">10 facts</option><option value="20">20 facts</option><option value="50">50 facts</option></select></div></div><div class="week-actions" style="margin:12px 0"><button id="generateFactsBtn">Generate facts</button><button id="copyFactsBtn">Copy facts</button></div><div class="notice" id="factNotice">Facts are calculated from the currently loaded CSV. Check the selected season and weeks before generating.</div><div id="factContent"></div></section><section class="panel hidden" id="draftPanel"><div class="panel-head"><h2>2027 NFL Draft Order · As It Stands</h2><span class="tag">PROVISIONAL ORDER</span></div><div class="field" style="max-width:220px;margin-bottom:12px"><label for="draftYear">Season being played</label><select id="draftYear"><option value="2026">2026</option><option value="2025">2025</option><option value="2024">2024</option><option value="2023">2023</option><option value="2022">2022</option><option value="2021">2021</option><option value="2020">2020</option></select></div><div class="notice" id="draftNotice">Provisional draft order based on the selected season's current records. Official order changes with playoff results, strength of schedule, and trades.</div><div id="draftContent"></div></section>
+<section class="panel hidden" id="factPanel"><div class="panel-head"><h2>Statistical Fact Generator</h2><span class="tag">NFL DATA ONLY</span></div><p class="muted">Generate evidence-based facts from the loaded player-week CSV. Facts use the selected season, phase, team, position and weeks; no external stats are invented.</p><div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px">
+<div class="field"><label for="factMetricDropdown">Statistics</label><div class="fact-add-row"><select id="factMetricDropdown" class="fact-dropdown"><option value="">Choose a statistic…</option></select><button type="button" id="addFactMetricBtn" class="fact-add-btn">Add</button></div><div id="factMetricChips" class="fact-chips"></div><div id="factMetricHint" class="small muted">Choose a statistic and press Add. Add as many as you need.</div><select id="factMetric" multiple hidden aria-hidden="true"></select></div>
+<div class="field"><label for="factPlayersDropdown">Players (optional)</label><div class="fact-add-row"><select id="factPlayersDropdown" class="fact-dropdown"><option value="">Choose a player…</option></select><button type="button" id="addFactPlayerBtn" class="fact-add-btn">Add</button></div><div id="factPlayersChips" class="fact-chips"></div><div id="factPlayersHint" class="small muted">Leave empty to include all players.</div><select id="factPlayers" multiple hidden aria-hidden="true"></select></div>
+<div class="field"><label for="factTeamsDropdown">Teams (optional)</label><div class="fact-add-row"><select id="factTeamsDropdown" class="fact-dropdown"><option value="">Choose a team…</option></select><button type="button" id="addFactTeamBtn" class="fact-add-btn">Add</button></div><div id="factTeamsChips" class="fact-chips"></div><div id="factTeamsHint" class="small muted">Leave empty to include all teams.</div><select id="factTeams" multiple hidden aria-hidden="true"></select></div><div class="field"><label for="factCount">Number of facts</label><select id="factCount"><option value="10">10 facts</option><option value="20">20 facts</option><option value="50">50 facts</option></select></div></div><div class="week-actions" style="margin:12px 0"><button id="generateFactsBtn">Generate facts</button><button id="copyFactsBtn">Copy facts</button></div><div class="notice" id="factNotice">Facts are calculated from the currently loaded CSV. Check the selected season and weeks before generating.</div><div id="factContent"></div></section><section class="panel hidden" id="draftPanel"><div class="panel-head"><h2>2027 NFL Draft Order · As It Stands</h2><span class="tag">PROVISIONAL ORDER</span></div><div class="field" style="max-width:220px;margin-bottom:12px"><label for="draftYear">Season being played</label><select id="draftYear"><option value="2026">2026</option><option value="2025">2025</option><option value="2024">2024</option><option value="2023">2023</option><option value="2022">2022</option><option value="2021">2021</option><option value="2020">2020</option></select></div><div class="notice" id="draftNotice">Provisional draft order based on the selected season's current records. Official order changes with playoff results, strength of schedule, and trades.</div><div id="draftContent"></div></section>
 <section class="panel hidden" id="calendarPanel">
 <div class="panel-head"><h2>NFL Schedule & Scores</h2><span class="tag">SCHEDULE</span></div>
 <div class="notice">Game times are converted from the schedule's Eastern Time to your selected timezone. Scores and statuses update when the schedule data is refreshed.</div>
@@ -200,6 +216,49 @@ function currentData(){const data=filtered();if(view==='weekly'){const selectedW
 function sortData(d){const k=$('metric').value;return [...d].sort((a,b)=>(b[k]??-Infinity)-(a[k]??-Infinity)||String(a.player).localeCompare(String(b.player)))}
 function headers(cols){$('thead').innerHTML='<tr>'+cols.map((c,i)=>`<th class="${i>2?'num':''}">${esc(c)}</th>`).join('')+'</tr>'}
 
+function initFactDropdowns(){
+ const metricSel=$('factMetric'),playerSel=$('factPlayers'),teamSel=$('factTeams');
+ const metricDrop=$('factMetricDropdown'),playerDrop=$('factPlayersDropdown'),teamDrop=$('factTeamsDropdown');
+ if(!metricSel||!playerSel||!teamSel||!metricDrop||!playerDrop||!teamDrop)return;
+ const metricsList=Object.entries(metrics).filter(([k,m])=>m.sum||m.rate||m.rating||m.average||m.derived);
+ const fill=(drop,items,placeholder)=>{
+  const current=drop.value;
+  drop.innerHTML=`<option value="">${placeholder}</option>`+items.map(([v,l])=>`<option value="${esc(v)}">${esc(l)}</option>`).join('');
+  if(items.some(([v])=>v===current))drop.value=current;
+ };
+ fill(metricDrop,metricsList.map(([k,m])=>[k,m.label||k]),'Choose a statistic…');
+ const season=+$('year').value||2026;
+ const seasonRows=raw.filter(r=>Number(r.season)===season);
+ const players=[...new Set(seasonRows.map(r=>r.player).filter(Boolean))].sort((a,b)=>a.localeCompare(b));
+ const teams=[...new Set(seasonRows.map(r=>r.team).filter(Boolean))].sort((a,b)=>teamName(a).localeCompare(teamName(b)));
+ fill(playerDrop,players.map(v=>[v,v]),'Choose a player…');
+ fill(teamDrop,teams.map(v=>[v,teamName(v)]),'Choose a team…');
+ const sync=(select,drop,chipId,emptyText)=>{
+  const picked=[...select.options].filter(o=>o.selected);
+  $(chipId).innerHTML=picked.map(o=>`<span class="fact-chip"><span>${esc(o.textContent)}</span><button type="button" data-remove-fact="${esc(select.id)}" data-value="${esc(o.value)}" aria-label="Remove ${esc(o.textContent)}">×</button></span>`).join('');
+  $(chipId).querySelectorAll('[data-remove-fact]').forEach(btn=>btn.onclick=()=>{
+   const option=[...select.options].find(o=>o.value===btn.dataset.value);if(option)option.selected=false;
+   sync(select,drop,chipId,emptyText);renderFactGenerator();
+  });
+  if(select.id==='factPlayers')$('factPlayersHint').textContent=picked.length?`${picked.length} player(s) selected.`:emptyText;
+  if(select.id==='factTeams')$('factTeamsHint').textContent=picked.length?`${picked.length} team(s) selected.`:emptyText;
+  if(select.id==='factMetric')$('factMetricHint').textContent=picked.length?`${picked.length} statistic(s) selected.`:'Choose a statistic and press Add. Add as many as you need.';
+ };
+ const add=(drop,select,chipId,emptyText)=>{
+  const v=drop.value;if(!v)return;
+  let option=[...select.options].find(o=>o.value===v);
+  if(!option){option=new Option(drop.options[drop.selectedIndex].text,v);select.add(option)}
+  option.selected=true;drop.value='';
+  sync(select,drop,chipId,emptyText);renderFactGenerator();
+ };
+ $('addFactMetricBtn').onclick=()=>add(metricDrop,metricSel,'factMetricChips','');
+ $('addFactPlayerBtn').onclick=()=>add(playerDrop,playerSel,'factPlayersChips','Leave empty to include all players.');
+ $('addFactTeamBtn').onclick=()=>add(teamDrop,teamSel,'factTeamsChips','Leave empty to include all teams.');
+ // Repaint chips after data refresh, retaining current selected values when still valid.
+ sync(metricSel,metricDrop,'factMetricChips','');
+ sync(playerSel,playerDrop,'factPlayersChips','Leave empty to include all players.');
+ sync(teamSel,teamDrop,'factTeamsChips','Leave empty to include all teams.');
+}
 function renderFactGeneratorForMetric(metricOverride){
  const sel=$('factMetric');
  if(!sel.options.length){sel.innerHTML=Object.entries(metrics).filter(([k,m])=>m.sum||m.rate||m.rating||m.average||m.derived).map(([k,m])=>`<option value="${k}">${esc(m.label)}</option>`).join('');}
@@ -249,6 +308,7 @@ function renderFactGeneratorForMetric(metricOverride){
  window.generatedNFLFacts=filteredFacts.map(f=>f.text+' — '+f.detail);
 }
 function renderFactGenerator(){
+ initFactDropdowns();
  const sel=$('factMetric');
  if(!sel.options.length){
   sel.innerHTML=Object.entries(metrics).filter(([k,m])=>m.sum||m.rate||m.rating||m.average||m.derived).map(([k,m])=>`<option value="${k}">${esc(m.label)}</option>`).join('');
